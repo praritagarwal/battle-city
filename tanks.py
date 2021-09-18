@@ -1453,6 +1453,12 @@ class Game():
 					if event.key == pygame.K_RETURN:
 						self.showMenu()
 						return
+				elif event.type == pygame.JOYBUTTONDOWN:
+					if event.button == 7:
+						self.showMenu()
+						return  
+					elif event.button == 6:
+						quit()			
 
 	def showMenu(self):
 		""" Show game menu
