@@ -2128,6 +2128,7 @@ class Game():
 					enemy.update(time_passed)
 
 			if not self.game_over and self.active:
+				num_live_players = len(players) 
 				for player in players:
 					if player.state == player.STATE_ALIVE:
 						if player.bonus != None and player.side == player.SIDE_PLAYER:
@@ -2139,7 +2140,10 @@ class Game():
 						if player.lives > 0:
 							self.respawnPlayer(player)
 						else:
-							self.gameOver()
+							num_live_players -= 1
+						# 	self.gameOver()
+				if num_live_players == 0:
+					self.gameOver()	
 
 			for bullet in bullets:
 				if bullet.state == bullet.STATE_REMOVED:
