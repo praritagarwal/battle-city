@@ -10,7 +10,7 @@ forked from
 
 ### Controls
 - Player 1: * movement: up/left/down/right * fire: space
-- Player 2: * movement: w/d/s/a * fire: f
+- Player 2: * movement: e/s/d/f * fire: g
 
 ### Fullscreen
 You can start the game in fullscreen mode by passing the "-f" argument
