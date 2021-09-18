@@ -959,6 +959,10 @@ class Enemy(Tank):
 			return pos
 		return False
 
+	def rotateRandomly(self):
+		""" rotate to a random direction"""
+		self.rotate(random.randrange(4), False)
+
 	def move(self):
 		""" move enemy if possible """
 
@@ -1000,14 +1004,16 @@ class Enemy(Tank):
 		# collisions with other enemies
 		for enemy in enemies:
 			if enemy != self and new_rect.colliderect(enemy.rect):
-				self.turnAround()
+				# self.turnAround()
+				self.rotateRandomly()
 				self.path = self.generatePath(self.direction)
 				return
 
 		# collisions with players
 		for player in players:
 			if new_rect.colliderect(player.rect):
-				self.turnAround()
+				# self.turnAround()
+				self.rotateRandomly()
 				self.path = self.generatePath(self.direction)
 				return
 
