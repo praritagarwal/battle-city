@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import os, pygame, time, random, uuid, sys
+import pdb
 
 class myRect(pygame.Rect):
 	""" Add type property """
@@ -1127,7 +1128,7 @@ class Enemy(Tank):
 
 class Player(Tank):
 
-	def __init__(self, level, type, position = None, direction = None, filename = None):
+	def __init__(self, level, type, position = None, direction = None, filename = None, joystick = None):
 
 		Tank.__init__(self, level, type, position = None, direction = None, filename = None)
 
@@ -1163,6 +1164,8 @@ class Player(Tank):
 			self.rotate(self.DIR_UP, False)
 		else:
 			self.rotate(direction, False)
+
+		self.joystick = joystick		
 
 	def move(self, direction):
 		""" move player if possible """
@@ -1256,7 +1259,14 @@ class Game():
 			pygame.mixer.pre_init(44100, -16, 1, 512)
 
 		pygame.init()
-
+		pygame.joystick.init()
+		num_joysticks = pygame.joystick.get_count()
+		self.joysticks = [pygame.joystick.Joystick(x) for x in range(num_joysticks)]
+		self.joystick_id2guid = dict()
+		if num_joysticks>0:
+			for joystick in self.joysticks:
+				joystick.init() 
+				self.joystick_id2guid[joystick.get_instance_id()] = joystick.get_guid()
 
 		pygame.display.set_caption("Battle City")
 
@@ -1477,6 +1487,20 @@ class Game():
 							self.drawIntroScreen()
 					elif event.key == pygame.K_RETURN:
 						main_loop = False
+				elif event.type == pygame.JOYHATMOTION:
+					if event.value == (0,-1):
+						if self.nr_of_players == 1:
+							self.nr_of_players = 2
+							self.drawIntroScreen()
+					elif event.value == (0,1):
+						if self.nr_of_players == 2:
+							self.nr_of_players = 1
+					        self.drawIntroScreen()
+				elif event.type == pygame.JOYBUTTONDOWN:
+					if event.button == 7:
+						main_loop = False 
+					elif event.button == 6:
+						quit()							
 
 		del players[:]
 		self.nextLevel()
@@ -1490,22 +1514,37 @@ class Game():
 
 		if len(players) == 0:
 			# first player
-			x = 8 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
-			y = 24 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
+			# x = 8 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
+			# y = 24 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
 
+			# player = Player(
+			# 	self.level, 0, [x, y], self.DIR_UP, (0, 0, 13*2, 13*2)
+			# )
+			x = 16 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
+			y = 24 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
 			player = Player(
-				self.level, 0, [x, y], self.DIR_UP, (0, 0, 13*2, 13*2)
+				self.level, 0, [x, y], self.DIR_UP, (16*2, 0, 13*2, 13*2)
 			)
+			if len(self.joysticks)>0:
+				player.joystick = self.joysticks[0]
 			players.append(player)
 
 			# second player
 			if self.nr_of_players == 2:
-				x = 16 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
+				# x = 16 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
+				# y = 24 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
+				# player = Player(
+				# 	self.level, 0, [x, y], self.DIR_UP, (16*2, 0, 13*2, 13*2)
+				# )
+				x = 8 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
 				y = 24 * self.TILE_SIZE + (self.TILE_SIZE * 2 - 26) / 2
 				player = Player(
-					self.level, 0, [x, y], self.DIR_UP, (16*2, 0, 13*2, 13*2)
+					self.level, 0, [x, y], self.DIR_UP, (0, 0, 13*2, 13*2)
 				)
-				player.controls = [102, 119, 100, 115, 97]
+				if len(self.joysticks)>1:
+					player.joystick = self.joysticks[1]
+				# player.controls = [102, 119, 100, 115, 97]
+				player.controls = [pygame.K_g, pygame.K_e, pygame.K_f, pygame.K_d, pygame.K_s]
 				players.append(player)
 
 		for player in players:
@@ -2024,6 +2063,43 @@ class Game():
 									player.pressed[2] = False
 								elif index == 4:
 									player.pressed[3] = False
+				# joystick_events: [pygame.JOYAXISMOTION pygame.JOYBALLMOTION pygame.JOYBUTTONDOWN pygame.JOYBUTTONUP pygame.JOYHATMOTION]					
+				elif event.type == pygame.JOYHATMOTION and not self.game_over and self.active:
+					instance_id = event.instance_id
+					for player in players:
+						if player.state != player.STATE_ALIVE:
+							continue
+						if (player.joystick is None) or (player.joystick.get_instance_id() != instance_id):
+							continue 
+						if event.value == (0,1): # Move up 
+							player.pressed[0] = True
+						elif event.value == (1,0): # Move right
+							player.pressed[1] = True
+						elif event.value == (0,-1): # Move down
+							player.pressed[2] = True
+						elif event.value == (-1,0): # Move left	 
+							player.pressed[3] = True
+						elif event.value == (0,0): # stay put 
+							player.pressed[0] = False
+							player.pressed[1] = False
+							player.pressed[2] = False
+							player.pressed[3] = False	
+				elif event.type == pygame.JOYBUTTONDOWN and not self.game_over and self.active:
+					if event.button == 6:
+						quit()
+					instance_id = event.instance_id
+					for player in players:
+						if player.state != player.STATE_ALIVE:
+							continue
+						if (player.joystick is None) or (player.joystick.get_instance_id() != instance_id):
+							continue 
+						if event.button == 0: # fire a bullet 
+							if player.fire() and play_sounds:
+								sounds["fire"].play()
+								
+
+
+
 
 			for player in players:
 				if player.state == player.STATE_ALIVE and not self.game_over and self.active:
